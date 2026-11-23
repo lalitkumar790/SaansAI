@@ -4,6 +4,7 @@ import {ruleBasedAnswer} from "@/lib/assistant";
 import {relevantForecast} from "@/lib/planner";
 
 export const dynamic="force-dynamic";
+export const maxDuration=30;
 type HistoryEntry={role:"user"|"assistant";text:string};
 const getReason=(status:number)=>status===429?"quota":status===404?"model_unavailable":status===400?"bad_request":status===401||status===403?"authentication":"provider_unavailable";
 
