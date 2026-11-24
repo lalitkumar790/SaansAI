@@ -22,7 +22,7 @@ export function departureOptions(air:{updated:string;hourly:{time:string;pm25:nu
  const start=air.updated.slice(0,13)+":00";
  const points=air.hourly.slice().sort((a,b)=>a.time.localeCompare(b.time));
  const lookup=new Map(points.map(p=>[p.time.slice(0,16),p.pm25]));
- return points.filter(p=>p.time.slice(0,16)>start).slice(0,24).flatMap(p=>{
+ return points.filter(p=>p.time.slice(0,16)>start&&Number(p.time.slice(11,13))>=6&&Number(p.time.slice(11,13))<=21).slice(0,24).flatMap(p=>{
   const t=Date.parse(p.time.slice(0,16)+":00Z");if(!Number.isFinite(t))return [];
   let total=0;
   for(let i=0;i<Math.ceil(duration);i++){
