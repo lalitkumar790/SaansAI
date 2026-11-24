@@ -21,7 +21,8 @@ export function ruleBasedAnswer(question:string,air:Air,p:Profile){
  else if(/cough|asthma|breath|symptom|chest|doctor|खांसी|सांस/.test(q))body=symptoms+" "+masks;
  else if(/exercise|running|jog|walk|play|outdoor|park|morning|evening|workout|सुबह|शाम|दौड़/.test(q))body=activity+" "+masks;
  else body=advice(air.usAqi,p).map(t=>t.title+": "+t.body).join(" ")+" "+masks;
- const hindi=/[\u0900-\u097F]/.test(question);
+ const hindi=/[\u0900-\u097F]/.test(question); const hinglish=/\b(kya|kaise|karna|chahiye|mera|meri|bachche|subah|kal|aaj|ghar|saans)\b/i.test(question);
+ if(hinglish&&!hindi)return "Modeled US AQI: "+(air.usAqi??"unavailable")+" ("+air.city+"). "+(air.isDemo?"Ye demo data hai. ":"") + (/school|bach|child/.test(q)?"School advisory check karein; pollution zyada ho to outdoor PE aur roadside waiting kam karein.":/ghar|window|purif|indoor/.test(q)?"Ghar mein dhuaan aur agarbatti kam karein; zaroori ventilation band na karein. HEPA filtration madad kar sakti hai.": "Pollution zyada ho to outdoor exertion kam karein aur local advisory check karein.")+" Severe breathing difficulty ya chest pain ho to urgent medical help lein. Ye general guidance hai, medical diagnosis nahi.";
  if(hindi)return "आपके शहर "+air.city+" का मॉडल-आधारित US AQI "+(air.usAqi??"उपलब्ध नहीं")+" है। प्रदूषण बढ़ने पर बाहर मेहनत वाला व्यायाम कम रखें। घर में अगरबत्ती/धुआँ कम करें, ज़रूरत हो तो सही HEPA फिल्टर इस्तेमाल करें। बच्चों और बुज़ुर्गों के लिए स्थानीय स्वास्थ्य/स्कूल निर्देश देखें। "+(air.isDemo?"ये डेमो रीडिंग है। ":"")+"यह सामान्य सलाह है, मेडिकल निदान नहीं।";
  return intro+"\n\n"+body+"\n\nThis is general guidance, not medical diagnosis. Air measurements are modeled and indoor air is not monitored.";
 }
