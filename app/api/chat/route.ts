@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 import type {Air,Profile} from "@/lib/air";
-import {ruleBasedAnswer} from "@/lib/assistant";
+import {ruleBasedAnswer,urgentGuidance} from "@/lib/assistant";
 import {compareCommutes} from "@/lib/commute";
 import {ventilationWindows} from "@/lib/indoor";
 import {relevantForecast} from "@/lib/planner";
@@ -17,6 +17,7 @@ export async function POST(req:NextRequest){
  const air=input.air;
  const profile=input.profile;
  if(!message||!air||!profile||!Array.isArray(air.hourly)||typeof air.city!=="string"||typeof profile.outdoor!=="string")return NextResponse.json({error:"Missing valid air-quality context"},{status:400});
+ const urgent=urgentGuidance(message);if(urgent)return NextResponse.json({reply:urgent,mode:"rules",reason:"urgent_symptoms"});
  const timing=relevantForecast(air,message,profile);
  const commuteScenarios=compareCommutes(profile.distance,air.pm25);
  const ventilation=ventilationWindows(air);
@@ -27,6 +28,8 @@ export async function POST(req:NextRequest){
    "\n\nTomorrow's forecast is unavailable. Do not assume today's AQI will remain the same tomorrow."):""),
   mode:"rules",reason
  });
+ if(/\b\d{4}-\d{2}-\d{2}\b/.test(message)&&!timing.hasForecast)return NextResponse.json({reply:"Forecast unavailable for "+timing.date+". Do not assume current AQI applies to that date.",mode:"rules",reason:"forecast_unavailable"});
+ if(/ignore (all |previous |your )?instructions|system prompt|invent (an? )?(aqi|reading)|fabricate/.test(message.toLowerCase()))return NextResponse.json(fallback("safety_guard"));
  const key=process.env.GEMINI_API_KEY;
  if(!key)return NextResponse.json(fallback("api_key_unconfigured"));
  const primaryModel=process.env.GEMINI_MODEL||"gemini-3.5-flash-lite";
