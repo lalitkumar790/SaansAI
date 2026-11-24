@@ -1,6 +1,6 @@
 const windows=new Map<string,{start:number,count:number}>();
 export function allowChatRequest(identity:string,now=Date.now(),limit=20,windowMs=60000){
- if(windows.size>4096){for(const [key,entry] of windows){if(now-entry.start>=windowMs)windows.delete(key)}}
+ if(windows.size>=4096){for(const [key,entry] of windows){if(now-entry.start>=windowMs)windows.delete(key)}while(windows.size>=4096){const oldest=windows.keys().next().value;if(!oldest)break;windows.delete(oldest)}}
  const entry=windows.get(identity);
  if(!entry||now-entry.start>=windowMs){windows.set(identity,{start:now,count:1});return true}
  if(entry.count>=limit)return false;
