@@ -18,5 +18,10 @@ export function relevantForecast(air:Air,message:string,p:Profile){
  const day:PlannerDay=tomorrow?"tomorrow":"today";
  const period:Period=/morning|subah|सुबह|school|स्कूल/.test(q)?"morning":/afternoon|dopahar|दोपहर/.test(q)?"afternoon":/evening|night|shaam|शाम|रात/.test(q)?"evening":p.outdoor;
  const window=forecastForDate(air,date,period);
- return {day,date,period:window.period,clock:window.label,windowMinAqi:window.min,windowMaxAqi:window.max,windowAverageAqi:window.average,hasForecast:window.average!==null,forecastBasis:"Open-Meteo modeled US AQI hourly forecast in city-local clock time",todayRequested:/today|aaj\b|आज/.test(q),futureRequested:tomorrow||Boolean(explicitDate&&explicitDate!==localDateFromAir(air))}
+ const twelveHour=q.match(/\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b/);
+ const twentyFourHour=q.match(/\b(?:at\s+)?([01]?\d|2[0-3]):([0-5]\d)\b/);
+ const hour=twelveHour?((Number(twelveHour[1])%12)+(twelveHour[3]==="pm"?12:0)):twentyFourHour?Number(twentyFourHour[1]):null;
+ const hourKey=hour===null?null:date+"T"+String(hour).padStart(2,"0")+":00";
+ const hourValue=hourKey&&!air.isStale?air.hourly.find(p=>p.time.slice(0,13)===hourKey.slice(0,13)&&typeof p.aqi==="number")?.aqi??null:null;
+ return {day,date,period:window.period,clock:window.label,requestedHour:hour,hourAqi:hourValue,windowMinAqi:window.min,windowMaxAqi:window.max,windowAverageAqi:window.average,hasForecast:window.average!==null,forecastBasis:"Open-Meteo modeled US AQI hourly forecast in city-local clock time",todayRequested:/today|aaj\b|आज/.test(q),futureRequested:tomorrow||Boolean(explicitDate&&explicitDate!==localDateFromAir(air))}
 }
