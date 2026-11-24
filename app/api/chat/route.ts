@@ -4,19 +4,27 @@ import {ruleBasedAnswer,urgentGuidance} from "@/lib/assistant";
 import {compareCommutes} from "@/lib/commute";
 import {ventilationWindows} from "@/lib/indoor";
 import {relevantForecast} from "@/lib/planner";
+import {allowChatRequest,validAirContext,validProfile} from "@/lib/request-guard";
+import {createHash} from "node:crypto";
 
 export const dynamic="force-dynamic";
+export const runtime="nodejs";
 export const maxDuration=30;
 type HistoryEntry={role:"user"|"assistant";text:string};
 const getReason=(status:number)=>status===429?"quota":status===404?"model_unavailable":status===400?"bad_request":status===401||status===403?"authentication":"provider_unavailable";
 
 export async function POST(req:NextRequest){
+ const size=Number(req.headers.get("content-length")||0);
+ if(size>48000)return NextResponse.json({error:"Request too large"},{status:413});
+ const identity=req.headers.get("x-real-ip")||req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"unknown";
+ const keyId=createHash("sha256").update(identity).digest("hex");
+ if(!allowChatRequest(keyId))return NextResponse.json({error:"Too many requests. Try again in a minute.",mode:"rules",reason:"rate_limited"},{status:429});
  let input:{message?:unknown;air?:Air;profile?:Profile;history?:unknown};
  try{input=await req.json()}catch{return NextResponse.json({error:"Invalid JSON body"},{status:400})}
  const message=typeof input.message==="string"?input.message.trim().slice(0,1200):"";
  const air=input.air;
  const profile=input.profile;
- if(!message||!air||!profile||!Array.isArray(air.hourly)||typeof air.city!=="string"||typeof profile.outdoor!=="string")return NextResponse.json({error:"Missing valid air-quality context"},{status:400});
+ if(!message||!validAirContext(air)||!validProfile(profile))return NextResponse.json({error:"Missing valid air-quality context"},{status:400});
  const urgent=urgentGuidance(message);if(urgent)return NextResponse.json({reply:urgent,mode:"rules",reason:"urgent_symptoms"});
  const timing=relevantForecast(air,message,profile);
  const commuteScenarios=compareCommutes(profile.distance,air.isStale?null:air.pm25);
