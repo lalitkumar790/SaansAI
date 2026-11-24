@@ -38,7 +38,7 @@ export default function Page(){
   const lines=["SaansAI family air brief",shown.city+", "+shown.country,plannerDay.toUpperCase()+" ("+schedule[0]?.date+")","Current modeled US AQI: "+(shown.isStale?"unavailable (offline snapshot)":shown.isDemo?"illustrative demo value "+shown.usAqi:(shown.usAqi??"unavailable")),"Household: "+profile.family];
   for(const item of schedule)lines.push(item.period+" "+item.label+": "+(item.average===null?"forecast unavailable":"modeled US AQI "+item.average+" (range "+item.min+"–"+item.max+")")+". "+item.recommendation);
   lines.push("Sources: Open-Meteo modeled air-quality forecasts; AirNow / US EPA guidance.","Never treat lower AQI as a guarantee of safe exposure. Not medical advice.");
-  try{await navigator.clipboard.writeText(lines.join("\\n"));setCopyStatus("copied")}catch{setCopyStatus("unavailable")}
+  try{await navigator.clipboard.writeText(lines.join("\n"));setCopyStatus("copied")}catch{setCopyStatus("unavailable")}
  }
  const peak=Math.max(100,...hourly.map(h=>h.aqi||0));const hasReal=Boolean(air&&!air.isDemo&&!air.isStale);const schedule=nextDaySchedule(shown,plannerDay,profile);
  return <div className="app-shell">
