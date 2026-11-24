@@ -46,12 +46,14 @@ export async function POST(req:NextRequest){
    if(upstream.ok){
     const response=await upstream.json();
     const answer=response.candidates?.[0]?.content?.parts?.map((v:{text?:string})=>v.text||"").join("").trim();
-    if(answer)return NextResponse.json({reply:answer,mode:"gemini"});
+    if(answer)return NextResponse.json({reply:answer,mode:"gemini",model});
     return NextResponse.json(fallback("empty_response"));
    }
    lastReason=getReason(upstream.status);
    console.error("Gemini request failed",{status:upstream.status,reason:lastReason,model,attempt});
-   if(!retryable.has(upstream.status))break;
+   // Model availability and quota may differ between configured models.
+   const hasDifferentBackup=attempt<models.length&&models[attempt]!==model;
+   if(!retryable.has(upstream.status)&&!(hasDifferentBackup&&(upstream.status===404||upstream.status===429)))break;
   }catch(error){
    lastReason=error instanceof Error&&(error.name==="TimeoutError"||error.name==="AbortError")?"timeout":"network_or_runtime";
    console.error("Gemini request exception",{reason:lastReason,name:error instanceof Error?error.name:"unknown",attempt});
