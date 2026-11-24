@@ -1,11 +1,19 @@
 import {advice,category,commuteImpact,type Air,type Profile} from "./air";
+export function urgentGuidance(question:string){
+ const q=question.toLowerCase();
+ if(!/can't breathe|cannot breathe|severe breathlessness|severe breathing|chest pain|blue lips|सांस नहीं|साँस नहीं|सीने में दर्द|saans nahi|saans nahin|seene mein dard/.test(q))return null;
+ if(/[\u0900-\u097F]/.test(q))return "तुरंत स्थानीय आपातकालीन चिकित्सा सहायता लें। AQI के बेहतर होने का इंतज़ार न करें।";
+ if(/saans|seene/.test(q))return "Turant emergency medical help lein. AQI improve hone ka wait na karein.";
+ return "Seek emergency medical help immediately. Do not wait for air quality to improve.";
+}
 export function ruleBasedAnswer(question:string,air:Air,p:Profile){
+ const urgent=urgentGuidance(question);if(urgent)return urgent;
  const q=question.toLowerCase(); const level=category(air.usAqi).level;
  const location=air.city+(air.isDemo?" (illustrative demo air readings)":" (modeled air-quality estimate)");
- const cautious=level>=4?"At this level, minimize unnecessary time outdoors and avoid strenuous outdoor activity.":level>=3?"Consider reducing outdoor exertion, particularly for more sensitive family members.":"Even when area-wide pollution looks lower, avoid heavy traffic and local smoke.";
+ const cautious=air.usAqi==null?"Current AQI is unavailable; check local advisories before outdoor activity.":level>=4?"At this level, minimize unnecessary time outdoors and avoid strenuous outdoor activity.":level>=3?"Consider reducing outdoor exertion, particularly for more sensitive family members.":"Even when area-wide pollution looks lower, avoid heavy traffic and local smoke.";
  const vulnerable=p.family!=="general"?" Children, older adults, and people with respiratory sensitivities may need extra precautions.":"";
  const intro="For "+location+", US AQI is "+(air.usAqi??"not available")+". "+cautious+vulnerable;
- const indoor="For a lower-cost indoor plan: avoid incense, smoking, candles and unnecessary frying smoke; wet-dust or damp-mop rather than dry-sweeping; seal obvious drafts where practical. If outdoor pollution is high, avoid leaving windows open continuously; ventilate briefly only when outdoor conditions improve and ventilation is necessary. A correctly sized HEPA purifier can reduce fine particles, but without an indoor sensor we cannot quantify indoor air quality.";
+ const indoor="For a lower-cost indoor plan: avoid incense, smoking, candles and unnecessary frying smoke; wet-dust or damp-mop rather than dry-sweeping; seal obvious drafts where practical. If outdoor pollution is high, avoid leaving windows open continuously; compare outdoor conditions for optional ventilation, but never delay necessary ventilation. A correctly sized HEPA purifier can reduce fine particles, but without an indoor sensor we cannot quantify indoor air quality.";
  const masks="If going outside is unavoidable, reduce time near busy roads and heavy exertion. A correctly fitted N95 or equivalent respirator can help filter particles, but must fit the wearer; do not assume respirators are appropriate for very young children. Follow local health and school advisories.";
  const commute=commuteImpact(p);
  const transport="For a "+p.distance+" km one-way commute, this simple round-trip comparison estimates "+commute.soloKg+" kg CO₂e by solo car versus "+commute.transitKg+" kg CO₂e by shared transit — about "+commute.savedKg+" kg less with shared transit, using illustrative assumptions only. The greener choice is not automatically the lowest-exposure journey; favor well-ventilated or filtered vehicles and avoid high-traffic roadside waiting where possible.";
@@ -19,6 +27,7 @@ export function ruleBasedAnswer(question:string,air:Air,p:Profile){
  else if(/plant|money plant|snake plant/.test(q))body=plants+" "+indoor;
  else if(/metro|bus|commut|traffic|car|travel|office|bike|walk|carbon|co2|emission|transport|ride|बस|गाड़ी/.test(q))body=transport;
  else if(/cough|asthma|breath|symptom|chest|doctor|खांसी|सांस/.test(q))body=symptoms+" "+masks;
+ else if(/elderly|older adult|senior|respiratory|copd|asthma/.test(q)||p.family==="elderly"||p.family==="sensitive")body="For older adults and respiratory-sensitive people, minimize strenuous outdoor activity during elevated pollution, avoid smoke and follow existing clinician guidance. "+symptoms;
  else if(/exercise|running|jog|walk|play|outdoor|park|morning|evening|workout|सुबह|शाम|दौड़/.test(q))body=activity+" "+masks;
  else body=advice(air.usAqi,p).map(t=>t.title+": "+t.body).join(" ")+" "+masks;
  const hindi=/[\u0900-\u097F]/.test(question); const hinglish=/\b(kya|kaise|karna|chahiye|mera|meri|bachche|subah|kal|aaj|ghar|saans)\b/i.test(question);
