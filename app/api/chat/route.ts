@@ -24,7 +24,7 @@ export async function POST(req:NextRequest){
  const message=typeof input.message==="string"?input.message.trim().slice(0,1200):"";
  const air=input.air;
  const profile=input.profile;
- if(!message||!validAirContext(air)||!validProfile(profile))return NextResponse.json({error:"Missing valid air-quality context"},{status:400});
+ if(!message||!air||!profile||!validAirContext(air)||!validProfile(profile))return NextResponse.json({error:"Missing valid air-quality context"},{status:400});
  const urgent=urgentGuidance(message);if(urgent)return NextResponse.json({reply:urgent,mode:"rules",reason:"urgent_symptoms"});
  const timing=relevantForecast(air,message,profile);
  const commuteScenarios=compareCommutes(profile.distance,air.isStale?null:air.pm25);
