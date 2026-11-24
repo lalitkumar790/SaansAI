@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import ts from "typescript";
+import {readFileSync} from "node:fs";
+const src=readFileSync(new URL("../lib/snapshot.ts",import.meta.url),"utf8");
+const js=ts.transpileModule(src,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+const {validateSnapshot}=await import("data:text/javascript;base64,"+Buffer.from(js).toString("base64"));
+const sample={city:"Agra",country:"India",latitude:27.17,longitude:78.0,updated:"2026-11-24T16:00",usAqi:145,pm25:70,pm10:110,hourly:[{time:"2026-11-25T08:00",aqi:150,pm25:75}],source:"Open-Meteo"};
+test("valid cached readings are marked stale on reload",()=>{const a=validateSnapshot(sample);assert.equal(a.city,"Agra");assert.equal(a.isStale,true);assert.equal(a.hourly.length,1)});
+test("reject corrupted snapshots rather than implying current measurements",()=>{assert.equal(validateSnapshot({...sample,updated:"bad date"}),null);assert.equal(validateSnapshot({...sample,pm25:Infinity}),null);assert.equal(validateSnapshot({...sample,hourly:Array(97).fill(sample.hourly[0])}),null)});
+test("loaded demo data remains labeled demo",()=>assert.equal(validateSnapshot({...sample,isDemo:true}).isDemo,true));
