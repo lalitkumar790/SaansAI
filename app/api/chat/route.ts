@@ -19,13 +19,13 @@ export async function POST(req:NextRequest){
  if(!message||!air||!profile||!Array.isArray(air.hourly)||typeof air.city!=="string"||typeof profile.outdoor!=="string")return NextResponse.json({error:"Missing valid air-quality context"},{status:400});
  const urgent=urgentGuidance(message);if(urgent)return NextResponse.json({reply:urgent,mode:"rules",reason:"urgent_symptoms"});
  const timing=relevantForecast(air,message,profile);
- const commuteScenarios=compareCommutes(profile.distance,air.pm25);
- const ventilation=ventilationWindows(air);
+ const commuteScenarios=compareCommutes(profile.distance,air.isStale?null:air.pm25);
+ const ventilation=air.isStale?[]:ventilationWindows(air);
  const extra=/ventilat|window|खिड़/.test(message.toLowerCase())?"\n\nUpcoming lower modeled outdoor PM2.5 hours: "+(ventilation.length?ventilation.map(v=>v.time+" ("+v.pm25+" µg/m³)").join("; "):"forecast unavailable")+". Lower is not necessarily safe; maintain necessary ventilation.":/commut|transport|metro|cycling|bus/.test(message.toLowerCase())?"\n\nIllustrative round-trip scenarios: "+commuteScenarios.map(v=>v.label+": "+v.minutes+" min, "+v.kg+" kg CO₂e").join("; ")+". Assumed speeds and emissions, not measured routes.":"";
  const fallback=(reason:string)=>({
-  reply:ruleBasedAnswer(message,air,profile)+extra+(timing.futureRequested?(timing.hasForecast?
+  reply:(air.isStale?"OFFLINE SNAPSHOT ("+air.updated+" local): these readings are old and cannot be used as current conditions.\n\n":"")+ruleBasedAnswer(message,air,profile)+extra+(timing.futureRequested?(timing.hasForecast?
    "\n\nForecast for "+timing.date+", "+timing.period+" ("+timing.clock+"): average modeled US AQI "+timing.windowAverageAqi+", range "+timing.windowMinAqi+"–"+timing.windowMaxAqi+". This is a modeled forecast, not a guarantee.":
-   "\n\nTomorrow's forecast is unavailable. Do not assume today's AQI will remain the same tomorrow."):""),
+   "\n\nForecast for "+timing.date+" is unavailable. Do not use the current AQI to predict that date."):""),
   mode:"rules",reason
  });
  if(/\b\d{4}-\d{2}-\d{2}\b/.test(message)&&!timing.hasForecast)return NextResponse.json({reply:"Forecast unavailable for "+timing.date+". Do not assume current AQI applies to that date.",mode:"rules",reason:"forecast_unavailable"});
