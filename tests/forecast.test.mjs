@@ -13,3 +13,6 @@ test("explicit supported future date uses the requested date",()=>{const f=relev
 test("unsupported future date never inherits today's readings",()=>{const f=relevantForecast(air,"school on 2026-12-25",p);assert.equal(f.hasForecast,false);assert.equal(f.windowAverageAqi,null);});
 test("stale snapshot never presents forecasts",()=>{const f=forecastForDate({...air,isStale:true},"2026-11-25","morning");assert.equal(f.average,null);});
 test("missing forecast entry does not invent values",()=>{const f=forecastForDate({...air,hourly:[]}, "2026-11-25","morning");assert.equal(f.min,null);assert.equal(f.max,null)});
+
+test("specific school departure hour uses matching local forecast hour",()=>{const result=relevantForecast(air,"My child has school tomorrow at 8 AM",p);assert.equal(result.requestedHour,8);assert.equal(result.hourAqi,27);assert.equal(result.date,"2026-11-25")});
+test("unavailable hour isn't replaced by a period average",()=>{const result=relevantForecast({...air,hourly:air.hourly.filter(x=>!x.time.startsWith("2026-11-25T08:"))},"Tomorrow at 8 AM",p);assert.equal(result.hourAqi,null);assert.equal(result.hasForecast,true)});
