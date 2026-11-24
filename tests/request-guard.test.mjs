@@ -1,0 +1,13 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import ts from "typescript";
+import {readFileSync} from "node:fs";
+const src=readFileSync(new URL("../lib/request-guard.ts",import.meta.url),"utf8");
+const js=ts.transpileModule(src,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+const {allowChatRequest,validAirContext,validProfile}=await import("data:text/javascript;base64,"+Buffer.from(js).toString("base64"));
+const air={city:"Agra",updated:"2026-11-24T16:00",usAqi:166,pm25:83,pm10:145,hourly:[{time:"2026-11-25T08:00",aqi:150,pm25:70}]};
+const profile={transport:"bus",family:"children",outdoor:"morning",distance:8,purifier:false};
+test("valid app context accepted",()=>{assert.equal(validAirContext(air),true);assert.equal(validProfile(profile),true)});
+test("non-finite or invalid model readings rejected",()=>{for(const n of [NaN,Infinity,-1,9000])assert.equal(validAirContext({...air,usAqi:n}),false);assert.equal(validAirContext({...air,hourly:[{time:"2026-11-25T08:00",aqi:Infinity,pm25:70}]}),false)});
+test("huge forecast payload and invalid profile rejected",()=>{assert.equal(validAirContext({...air,hourly:Array(97).fill(air.hourly[0])}),false);assert.equal(validProfile({...profile,distance:-2}),false);assert.equal(validProfile({...profile,transport:"jetpack"}),false)});
+test("per-client rate limiter expires window",()=>{assert.equal(allowChatRequest("test-client",1000,2,60000),true);assert.equal(allowChatRequest("test-client",1001,2,60000),true);assert.equal(allowChatRequest("test-client",1002,2,60000),false);assert.equal(allowChatRequest("test-client",61000,2,60000),true);assert.equal(allowChatRequest("other-client",1002,2,60000),true)});
